@@ -4,15 +4,35 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { logAction } from '../utils/audit';
 
 interface Product {
+  id?: number | string;
+  name?: string;
+  description?: string;
+  price?: number;
   category_id: number | string;
-  category: string;
+  category?: string;
   image_url: string;
   created_at: string | Date;
   updated_at: string | Date;
+  available?: number | boolean;
+  allergens?: string;
   [key: string]: unknown;
 }
 
 interface Addon {
+  id?: number | string;
+  group_id?: number | string;
+  sort_order?: number;
+  created_at?: string | Date;
+  [key: string]: unknown;
+}
+
+interface AddonGroup {
+  id?: number | string;
+  product_id: number | string;
+  min_options?: number;
+  max_options?: number;
+  sort_order?: number;
+  created_at?: string | Date;
   [key: string]: unknown;
 }
 
@@ -52,7 +72,7 @@ router.get('/', (req, res) => {
   `).all() as Product[];
   
   // Converter para camelCase e manter compatibilidade com dashboard
-  const productsCamel = products.map((product) => ({
+  const productsCamel = products.map((product: Product) => ({
     ...product,
     categoryId: product.category_id,
     category_id: product.category_id,
@@ -73,6 +93,7 @@ router.get('/:id', (req, res) => {
     LEFT JOIN categories c ON p.category_id = c.id 
     WHERE p.id = ?
   `).get(req.params.id) as Product | undefined;
+
   if (!product) {
     return res.sendStatus(404);
   }
@@ -94,36 +115,37 @@ router.get('/:id', (req, res) => {
     SELECT * FROM addon_groups 
     WHERE product_id = ? 
     ORDER BY sort_order, id
-  `).all(req.params.id) as any[];
+  `).all(req.params.id) as AddonGroup[];
 
   // Buscar adicionais para cada grupo e converter para camelCase
-  const groupsWithAddons = addonGroups.map(group => {
+  const groupsWithAddons = addonGroups.map((group: AddonGroup) => {
     const addons = db.prepare(`
       SELECT * FROM addons 
       WHERE group_id = ? AND available = 1
       ORDER BY sort_order, id
     `).all(group.id) as Addon[];
     
-    const addonsCamel = addons.map(addon => {
-      const { group_id, sort_order, created_at, ...rest } = addon as any;
+    const addonsCamel = addons.map((addon: Addon) => {
+      const { group_id, sort_order, created_at, ...rest } = addon;
       return {
         ...rest,
-        groupId: addon.group_id,
-        sortOrder: addon.sort_order,
-        createdAt: addon.created_at
+        groupId: group_id,
+        sortOrder: sort_order,
+        createdAt: created_at
       };
     });
 
+    const { product_id, min_options, max_options, sort_order, created_at, ...groupRest } = group;
     return {
-      ...group,
-      productId: group.product_id,
-      minOptions: group.min_options,
-      maxOptions: group.max_options,
-      sortOrder: group.sort_order,
-      createdAt: group.created_at,
+      ...groupRest,
+      productId: product_id,
+      minOptions: min_options,
+      maxOptions: max_options,
+      sortOrder: sort_order,
+      createdAt: created_at,
       addons: addonsCamel
     };
-  }).map(({ product_id, min_options, max_options, sort_order, created_at, ...rest }) => rest);
+  });
 
   res.json({ ...productCamel, addonGroups: groupsWithAddons });
 });
