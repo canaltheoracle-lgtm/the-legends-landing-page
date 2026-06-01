@@ -3,6 +3,19 @@ import db from '../db';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { logAction } from '../utils/audit';
 
+interface Product {
+  category_id: number | string;
+  category: string;
+  image_url: string;
+  created_at: string | Date;
+  updated_at: string | Date;
+  [key: string]: unknown;
+}
+
+interface Addon {
+  [key: string]: unknown;
+}
+
 const router = express.Router();
 
 router.get('/categories', (req, res) => {
@@ -36,10 +49,10 @@ router.get('/', (req, res) => {
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
     ORDER BY p.name
-  `).all();
+  `).all() as Product[];
   
   // Converter para camelCase e manter compatibilidade com dashboard
-  const productsCamel = products.map((product: any) => ({
+  const productsCamel = products.map((product) => ({
     ...product,
     categoryId: product.category_id,
     category_id: product.category_id,
@@ -59,7 +72,7 @@ router.get('/:id', (req, res) => {
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
     WHERE p.id = ?
-  `).get(req.params.id);
+  `).get(req.params.id) as Product | undefined;
   if (!product) {
     return res.sendStatus(404);
   }
@@ -89,14 +102,17 @@ router.get('/:id', (req, res) => {
       SELECT * FROM addons 
       WHERE group_id = ? AND available = 1
       ORDER BY sort_order, id
-    `).all(group.id);
+    `).all(group.id) as Addon[];
     
-    const addonsCamel = addons.map(addon => ({
-      ...addon,
-      groupId: addon.group_id,
-      sortOrder: addon.sort_order,
-      createdAt: addon.created_at
-    })).map(({ group_id, sort_order, created_at, ...rest }) => rest);
+    const addonsCamel = addons.map(addon => {
+      const { group_id, sort_order, created_at, ...rest } = addon as any;
+      return {
+        ...rest,
+        groupId: addon.group_id,
+        sortOrder: addon.sort_order,
+        createdAt: addon.created_at
+      };
+    });
 
     return {
       ...group,
