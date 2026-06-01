@@ -32,17 +32,30 @@ router.delete('/categories/:id', authenticateToken, requireRole(['admin']), (req
 
 router.get('/', (req, res) => {
   const products = db.prepare(`
-    SELECT p.*, c.name as category_name 
+    SELECT p.*, c.name as category 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
     ORDER BY p.name
   `).all();
-  res.json(products);
+  
+  // Converter para camelCase e manter compatibilidade com dashboard
+  const productsCamel = products.map((product: any) => ({
+    ...product,
+    categoryId: product.category_id,
+    category_id: product.category_id,
+    category_name: product.category,
+    imageUrl: product.image_url,
+    image_url: product.image_url,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+  }));
+  
+  res.json(productsCamel);
 });
 
 router.get('/:id', (req, res) => {
   const product = db.prepare(`
-    SELECT p.*, c.name as category_name 
+    SELECT p.*, c.name as category 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
     WHERE p.id = ?
@@ -50,7 +63,53 @@ router.get('/:id', (req, res) => {
   if (!product) {
     return res.sendStatus(404);
   }
-  res.json(product);
+
+  // Converter product para camelCase e manter compatibilidade com dashboard
+  const productCamel = {
+    ...product,
+    categoryId: product.category_id,
+    category_id: product.category_id,
+    category_name: product.category,
+    imageUrl: product.image_url,
+    image_url: product.image_url,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at
+  };
+
+  // Buscar grupos de adicionais
+  const addonGroups = db.prepare(`
+    SELECT * FROM addon_groups 
+    WHERE product_id = ? 
+    ORDER BY sort_order, id
+  `).all(req.params.id) as any[];
+
+  // Buscar adicionais para cada grupo e converter para camelCase
+  const groupsWithAddons = addonGroups.map(group => {
+    const addons = db.prepare(`
+      SELECT * FROM addons 
+      WHERE group_id = ? AND available = 1
+      ORDER BY sort_order, id
+    `).all(group.id);
+    
+    const addonsCamel = addons.map(addon => ({
+      ...addon,
+      groupId: addon.group_id,
+      sortOrder: addon.sort_order,
+      createdAt: addon.created_at
+    })).map(({ group_id, sort_order, created_at, ...rest }) => rest);
+
+    return {
+      ...group,
+      productId: group.product_id,
+      minOptions: group.min_options,
+      maxOptions: group.max_options,
+      sortOrder: group.sort_order,
+      createdAt: group.created_at,
+      addons: addonsCamel
+    };
+  }).map(({ product_id, min_options, max_options, sort_order, created_at, ...rest }) => rest);
+
+  res.json({ ...productCamel, addonGroups: groupsWithAddons });
 });
 
 router.post('/', authenticateToken, requireRole(['admin', 'manager']), (req, res) => {

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   Utensils,
+  PlusSquare,
   ClipboardList,
   Users,
   LogOut,
@@ -17,6 +18,7 @@ const Layout: React.FC = () => {
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/produtos', icon: Utensils, label: 'Cardápio' },
+    { path: '/adicionais', icon: PlusSquare, label: 'Adicionais' },
     { path: '/pedidos', icon: ClipboardList, label: 'Pedidos' },
   ];
 

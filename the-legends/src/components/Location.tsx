@@ -16,15 +16,17 @@ const Location = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
-          <div className="retro-border bg-gray-900 aspect-video relative flex items-center justify-center overflow-hidden">
-            {/* Mock Map */}
-            <div className="absolute inset-0 bg-red-900/10" />
-            <div className="text-center p-4">
-              <MapPin className="w-8 h-8 md:w-12 md:h-12 text-retro-yellow mx-auto mb-2 md:mb-4 animate-bounce" />
-              <div className="font-retro text-[8px] md:text-[10px]">THE LEGENDS HQ</div>
-            </div>
-            {/* Scanlines on map */}
-            <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-size-[100%_4px,4px_100%]" />
+          <div className="retro-border bg-gray-900 aspect-video relative overflow-hidden">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3717.284287201127!2d-50.4454047!3d-21.2060973!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x949645643aefb6f1:0x6e9af7c55d936650!2sThe%20Legends%20Hamburgueria!5e0!3m2!1spt-BR!2sbr!4v1716854400000!5m2!1spt-BR!2sbr"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="The Legends Hamburgueria - Mapa"
+            />
           </div>
 
           <div className="space-y-6 md:space-y-8">
@@ -34,7 +36,7 @@ const Location = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm md:text-lg mb-1 md:mb-2 wrap-break-word">COORDENADAS</h3>
-                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">Rua dos Gamers, 123 - Bairro Retrô<br />Cidade das Lendas - SP</p>
+                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">Rua Marcílios Dias, 10<br />Araçatuba - SP</p>
               </div>
             </div>
 
@@ -44,7 +46,7 @@ const Location = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm md:text-lg mb-1 md:mb-2 wrap-break-word">HORÁRIO DE JOGO</h3>
-                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">Terça a Domingo: 18:00 - 00:00<br />Sexta e Sábado: 18:00 - 02:00</p>
+                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">DOM: 19:00 às 23:00<br />SEG: 19:00 às 23:00<br />TER: 19:00 às 23:00<br />QUI: 19:00 às 23:00<br />SEX: 19:00 às 23:00<br />SÁB: 19:00 às 23:00</p>
               </div>
             </div>
 
@@ -54,7 +56,7 @@ const Location = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm md:text-lg mb-1 md:mb-2 wrap-break-word">SUPORTE TÉCNICO</h3>
-                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">(11) 99999-8888<br />@thelegendshamburgueria</p>
+                <p className="text-[10px] md:text-sm text-gray-400 font-game leading-relaxed">(18) 99705-1415<br />@thelegendshamburgueria</p>
               </div>
             </div>
           </div>

@@ -1,46 +1,38 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Addons from './pages/Addons';
 import Orders from './pages/Orders';
 import Users from './pages/Users';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: string }> = ({ children, role }) => {
+const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Carregando...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+      </div>
+    );
   }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (role && user.role !== role) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
 
   if (!user) {
     return <Login />;
   }
 
   return (
-    <Layout>
-      <Routes>
+    <Routes>
+      <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/produtos" element={<Products />} />
+        <Route path="/adicionais" element={<Addons />} />
         <Route path="/pedidos" element={<Orders />} />
         <Route path="/usuarios" element={<Users />} />
-      </Routes>
-    </Layout>
+      </Route>
+    </Routes>
   );
 };
 
@@ -48,10 +40,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/*" element={<AppRoutes />} />
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
     </AuthProvider>
   );

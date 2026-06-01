@@ -1,9 +1,9 @@
 import { Star } from 'lucide-react';
 
 const reviews = [
-  { id: 1, user: "MARIO_85", score: 9999, comment: "Melhor cogumelo que já comi! ITA-MA-RE!" },
-  { id: 2, user: "SCORPION", score: 8500, comment: "GET OVER HERE! E tragam mais batatas!" },
-  { id: 3, user: "ZELDA_FAN", score: 7200, comment: "É perigoso ir sozinho, coma um burger antes." },
+  { id: 1, user: "LUIZ_HERO", score: 9999, comment: "Fantástico o atendimento e sabor dos lanches! Os melhores burgers da cidade!" },
+  { id: 2, user: "JULIA_GAMER", score: 9500, comment: "Excelente! Os lanches são muito bons, atendimento ótimo e lugar aconchegante!" },
+  { id: 3, user: "PEDRO_CHEF", score: 9000, comment: "Recomendo! Lanches deliciosos, funcionários super atenciosos, vale a pena!" },
 ];
 
 const Reviews = () => {

@@ -1,15 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Product, Category } from '../types';
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
+
+interface Product {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  category_id?: number;
+  category_name?: string;
+  available: number;
+  image_url?: string;
+  allergens?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  sort_order: number;
+  created_at?: string;
+}
 
 const Products: React.FC = () => {
   const { token, user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -18,6 +40,10 @@ const Products: React.FC = () => {
     available: 1,
     image_url: '',
     allergens: '',
+  });
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    sort_order: '',
   });
 
   useEffect(() => {
@@ -104,6 +130,50 @@ const Products: React.FC = () => {
     }
   };
 
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = {
+        ...categoryFormData,
+        sort_order: parseInt(categoryFormData.sort_order) || 0,
+      };
+      if (editingCategory) {
+        await api.put(`/products/categories/${editingCategory.id}`, data, token);
+      } else {
+        await api.post('/products/categories', data, token);
+      }
+      setShowCategoryModal(false);
+      setEditingCategory(null);
+      setCategoryFormData({
+        name: '',
+        sort_order: '',
+      });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      sort_order: category.sort_order.toString(),
+    });
+    setShowCategoryModal(true);
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir esta categoria? Produtos desta categoria ficarão sem categoria.')) {
+      try {
+        await api.delete(`/products/categories/${id}`, token);
+        fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   const canEdit = user?.role === 'admin' || user?.role === 'manager';
   const canDelete = user?.role === 'admin';
 
@@ -112,13 +182,22 @@ const Products: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-white">Cardápio</h1>
         {canEdit && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Produto
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Gerenciar Categorias
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Produto
+            </button>
+          </div>
         )}
       </div>
 
@@ -287,6 +366,98 @@ const Products: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-700">
+              <h2 className="text-xl font-semibold text-white">
+                {editingCategory ? 'Editar Categoria' : 'Gerenciar Categorias'}
+              </h2>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={handleCategorySubmit} className="space-y-4 mb-8">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    {editingCategory ? 'Novo Nome' : 'Nome da Categoria'}
+                  </label>
+                  <input
+                    type="text"
+                    value={categoryFormData.name}
+                    onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Ex: Hamburgueres"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Ordem</label>
+                  <input
+                    type="number"
+                    value={categoryFormData.sort_order}
+                    onChange={(e) => setCategoryFormData({ ...categoryFormData, sort_order: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    min="0"
+                  />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCategoryModal(false);
+                      setEditingCategory(null);
+                      setCategoryFormData({ name: '', sort_order: '' });
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    {editingCategory ? 'Salvar Alterações' : 'Adicionar Categoria'}
+                  </button>
+                </div>
+              </form>
+
+              <div className="space-y-3">
+                <h3 className="text-lg font-medium text-white">Categorias Existentes</h3>
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between bg-gray-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 font-medium">Ordem: {category.sort_order}</span>
+                      <span className="text-white font-medium">{category.name}</span>
+                    </div>
+                    {canEdit && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditCategory(category)}
+                          className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {categories.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Nenhuma categoria encontrada</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

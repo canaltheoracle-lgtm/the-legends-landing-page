@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Shield } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@thelegends.com');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const { login } = useAuth();
 

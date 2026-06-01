@@ -9,6 +9,7 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -16,14 +17,19 @@ const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const [statsData, ordersData] = await Promise.all([
         api.get('/orders/stats', token),
         api.get('/orders?status=received', token),
       ]);
+      
       setStats(statsData);
       setRecentOrders(ordersData.slice(0, 5));
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao carregar dados:', err);
+      setError('Não foi possível carregar os dados. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -48,7 +54,30 @@ const Dashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="text-white">Carregando...</div>;
+    return (
+      <div className="text-white flex flex-col items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-4"></div>
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-white">
+        <h1 className="text-3xl font-bold text-white mb-8">Dashboard</h1>
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-400">{error}</p>
+          <button 
+            onClick={fetchData}
+            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
