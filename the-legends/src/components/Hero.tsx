@@ -21,7 +21,7 @@ const Hero = () => {
         <img 
           src={logo} 
           alt="The Legends Logo" 
-          className="w-64 sm:w-80 md:w-[550px] mb-8 pixelated drop-shadow-[0_0_20px_rgba(255,184,0,0.3)]"
+          className="w-64 sm:w-72 md:w-[380px] mb-8 pixelated drop-shadow-[0_0_20px_rgba(255,184,0,0.3)]"
         />
         <div className="mb-6 inline-block bg-retro-red px-4 py-1 font-retro text-[10px] animate-pulse border-2 border-retro-yellow">
           BOSS LEVEL: O GRANDE BURGER

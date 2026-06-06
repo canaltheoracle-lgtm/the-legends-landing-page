@@ -13,7 +13,7 @@ const Users: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    role: 'attendant' as const,
+    role: 'attendant' as 'admin' | 'manager' | 'attendant' | 'kitchen' | 'delivery',
   });
 
   useEffect(() => {

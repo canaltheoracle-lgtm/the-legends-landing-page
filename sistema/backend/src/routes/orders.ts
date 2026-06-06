@@ -5,6 +5,11 @@ import { logAction } from '../utils/audit';
 
 const router = express.Router();
 
+const fixDate = (dateStr: string | null | undefined): string | null => {
+  if (!dateStr) return null;
+  return dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+};
+
 router.get('/', authenticateToken, (req, res) => {
   const { status, startDate, endDate } = req.query;
   let query = 'SELECT * FROM orders WHERE 1=1';
@@ -36,7 +41,7 @@ router.get('/', authenticateToken, (req, res) => {
       const addons = db.prepare('SELECT * FROM order_item_addons WHERE order_item_id = ?').all(item.id);
       return { ...item, addons };
     });
-    return { ...order, items };
+    return { ...order, created_at: fixDate(order.created_at), updated_at: fixDate(order.updated_at), items };
   });
 
   res.json(ordersWithItems);
@@ -51,6 +56,74 @@ router.get('/stats', authenticateToken, (req, res) => {
     pendingOrders: pending.count,
     todayOrders: todayOrders.count,
     todayRevenue: todayOrders.total || 0,
+  });
+});
+
+router.get('/stats/advanced', authenticateToken, (req, res) => {
+  const { startDate, endDate } = req.query;
+  let dateFilter = '';
+  const params: any[] = [];
+  if (startDate) {
+    dateFilter += ' AND o.created_at >= ?';
+    params.push(startDate);
+  }
+  if (endDate) {
+    dateFilter += ' AND o.created_at <= ?';
+    params.push(endDate);
+  }
+
+  const summary = db.prepare(`
+    SELECT 
+      COALESCE(SUM(o.total), 0) as totalRevenue,
+      COUNT(*) as totalOrders,
+      COALESCE(SUM(o.total) / CAST(COUNT(*) AS REAL), 0) as averageTicket,
+      SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) as cancelledOrders
+    FROM orders o WHERE 1=1${dateFilter}
+  `).get(...params) as any;
+
+  const dailyRevenue = db.prepare(`
+    SELECT DATE(o.created_at) as date, SUM(o.total) as revenue, COUNT(*) as orders
+    FROM orders o WHERE o.status != 'cancelled'${dateFilter}
+    GROUP BY DATE(o.created_at) ORDER BY date
+  `).all(...params);
+
+  const topProducts = db.prepare(`
+    SELECT p.name as product_name, SUM(oi.quantity) as quantity, SUM(oi.price * oi.quantity) as revenue
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.id
+    JOIN orders o ON oi.order_id = o.id
+    WHERE o.status != 'cancelled'${dateFilter}
+    GROUP BY p.id ORDER BY quantity DESC LIMIT 10
+  `).all(...params);
+
+  const paymentMethods = db.prepare(`
+    SELECT o.payment_method as method, COUNT(*) as count, COALESCE(SUM(o.total), 0) as total
+    FROM orders o WHERE 1=1${dateFilter}
+    GROUP BY o.payment_method ORDER BY count DESC
+  `).all(...params);
+
+  const statusDistribution = db.prepare(`
+    SELECT o.status, COUNT(*) as count
+    FROM orders o WHERE 1=1${dateFilter}
+    GROUP BY o.status ORDER BY count DESC
+  `).all(...params);
+
+  const hourlyDistribution = db.prepare(`
+    SELECT CAST(STRFTIME('%H', o.created_at) AS INTEGER) as hour, COUNT(*) as count
+    FROM orders o WHERE 1=1${dateFilter}
+    GROUP BY hour ORDER BY hour
+  `).all(...params);
+
+  res.json({
+    totalRevenue: summary.totalRevenue,
+    totalOrders: summary.totalOrders,
+    averageTicket: summary.averageTicket,
+    cancelledOrders: summary.cancelledOrders,
+    dailyRevenue,
+    topProducts,
+    paymentMethods,
+    statusDistribution,
+    hourlyDistribution,
   });
 });
 
@@ -70,19 +143,25 @@ router.get('/:id', authenticateToken, (req, res) => {
     return { ...item, addons };
   });
 
-  res.json({ ...order, items });
+  res.json({ ...order, created_at: fixDate(order.created_at), updated_at: fixDate(order.updated_at), items });
 });
 
 router.post('/', (req, res) => {
   const { 
     customer_name, customer_phone, customer_address, payment_method, notes, items,
-    customerName, customerPhone, customerAddress, paymentMethod
+    customerName, customerPhone, customerAddress, paymentMethod,
+    paymentLocation, needsChange, changeFor
   } = req.body;
   
   const finalCustomerName = customerName || customer_name;
   const finalCustomerPhone = customerPhone || customer_phone;
   const finalCustomerAddress = customerAddress || customer_address;
   const finalPaymentMethod = paymentMethod || payment_method;
+  
+  let finalNotes = notes || '';
+  if (needsChange) {
+    finalNotes += `${finalNotes ? ' | ' : ''}Troco para R$ ${changeFor}`;
+  }
   
   // Calcular total incluindo adicionais
   const total = items.reduce((sum: number, item: any) => {
@@ -96,7 +175,7 @@ router.post('/', (req, res) => {
   const result = db.prepare(`
     INSERT INTO orders (customer_name, customer_phone, customer_address, total, payment_method, notes)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(finalCustomerName, finalCustomerPhone, finalCustomerAddress, total, finalPaymentMethod, notes);
+  `).run(finalCustomerName, finalCustomerPhone, finalCustomerAddress, total, finalPaymentMethod, finalNotes);
 
   const orderId = Number(result.lastInsertRowid);
   items.forEach((item: any) => {

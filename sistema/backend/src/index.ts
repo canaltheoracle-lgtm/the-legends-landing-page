@@ -14,7 +14,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+const corsOrigins = process.env.CORS_ORIGINS;
+const corsOptions = corsOrigins
+  ? { origin: corsOrigins.split(',').map(o => o.trim()) }
+  : { origin: '*' };
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Servir arquivos estáticos da pasta public

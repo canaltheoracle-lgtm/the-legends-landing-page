@@ -17,7 +17,10 @@ const CheckoutModal = ({ isOpen, onClose }: CheckoutModalProps) => {
     customerName: '',
     customerPhone: '',
     customerAddress: '',
+    paymentLocation: 'delivery',
     paymentMethod: 'dinheiro',
+    needsChange: false,
+    changeFor: '',
     notes: '',
   });
 
@@ -32,7 +35,14 @@ const CheckoutModal = ({ isOpen, onClose }: CheckoutModalProps) => {
     setLoading(true);
     try {
       await api.createOrder({
-        ...formData,
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        customerAddress: formData.customerAddress,
+        paymentMethod: formData.paymentMethod,
+        paymentLocation: formData.paymentLocation,
+        needsChange: formData.paymentMethod === 'dinheiro' ? formData.needsChange : false,
+        changeFor: formData.paymentMethod === 'dinheiro' && formData.needsChange ? formData.changeFor : '',
+        notes: formData.notes,
         items: cart.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -57,13 +67,18 @@ const CheckoutModal = ({ isOpen, onClose }: CheckoutModalProps) => {
       customerName: '',
       customerPhone: '',
       customerAddress: '',
+      paymentLocation: 'delivery',
       paymentMethod: 'dinheiro',
+      needsChange: false,
+      changeFor: '',
       notes: '',
     });
     onClose();
   };
 
   if (!isOpen) return null;
+
+  const isOnlinePayment = formData.paymentLocation === 'online';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -191,18 +206,89 @@ const CheckoutModal = ({ isOpen, onClose }: CheckoutModalProps) => {
                     placeholder="Rua, número, bairro"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs text-gray-400 font-retro mb-2">FORMA DE PAGAMENTO</label>
-                  <select
-                    value={formData.paymentMethod}
-                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                    className="w-full bg-retro-gray border-2 border-gray-700 text-white px-4 py-3 focus:border-retro-yellow outline-none"
-                  >
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="pix">PIX</option>
-                    <option value="cartao">Cartão</option>
-                  </select>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, paymentLocation: 'delivery', paymentMethod: 'dinheiro' });
+                      }}
+                      className={`flex-1 py-3 px-4 text-xs font-retro border-2 transition-colors ${
+                        formData.paymentLocation === 'delivery'
+                          ? 'border-retro-yellow bg-retro-yellow text-black'
+                          : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      PAGAR NA ENTREGA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, paymentLocation: 'online', paymentMethod: 'pix' });
+                      }}
+                      className={`flex-1 py-3 px-4 text-xs font-retro border-2 transition-colors ${
+                        formData.paymentLocation === 'online'
+                          ? 'border-retro-yellow bg-retro-yellow text-black'
+                          : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      PAGAR NO SITE
+                    </button>
+                  </div>
+
+                  {!isOnlinePayment && (
+                    <select
+                      value={formData.paymentMethod}
+                      onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                      className="w-full bg-retro-gray border-2 border-gray-700 text-white px-4 py-3 focus:border-retro-yellow outline-none"
+                    >
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="pix">PIX</option>
+                      <option value="cartao">Cartão</option>
+                    </select>
+                  )}
+
+                  {isOnlinePayment && (
+                    <div className="bg-gray-900 border-2 border-gray-700 p-4 text-center">
+                      <p className="text-gray-400 text-xs mb-2">INTEGRAÇÃO DE PAGAMENTO EM BREVE</p>
+                      <p className="text-gray-600 text-xs">Em breve você poderá pagar diretamente no site com PIX ou cartão de crédito.</p>
+                    </div>
+                  )}
                 </div>
+
+                {!isOnlinePayment && formData.paymentMethod === 'dinheiro' && (
+                  <div className="space-y-3 p-4 border-2 border-gray-800">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.needsChange}
+                        onChange={(e) => setFormData({ ...formData, needsChange: e.target.checked })}
+                        className="w-4 h-4 accent-retro-yellow"
+                      />
+                      <span className="text-xs text-gray-400 font-retro">PRECISA DE TROCO?</span>
+                    </label>
+                    {formData.needsChange && (
+                      <div>
+                        <label className="block text-xs text-gray-400 font-retro mb-2">TROCO PARA QUANTO?</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-retro text-xs">R$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.changeFor}
+                            onChange={(e) => setFormData({ ...formData, changeFor: e.target.value })}
+                            className="w-full bg-retro-gray border-2 border-gray-700 text-white pl-12 pr-4 py-3 focus:border-retro-yellow outline-none"
+                            placeholder="0,00"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs text-gray-400 font-retro mb-2">OBSERVAÇÕES GERAIS</label>
                   <textarea
@@ -219,12 +305,19 @@ const CheckoutModal = ({ isOpen, onClose }: CheckoutModalProps) => {
                   </div>
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="retro-button w-full py-4 text-lg flex items-center justify-center gap-2"
+                    disabled={loading || isOnlinePayment}
+                    className={`w-full py-4 text-lg flex items-center justify-center gap-2 ${
+                      isOnlinePayment
+                        ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                        : 'retro-button'
+                    }`}
                   >
                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                    {loading ? 'PROCESSANDO...' : 'CONFIRMAR PEDIDO'}
+                    {loading ? 'PROCESSANDO...' : isOnlinePayment ? 'INDISPONÍVEL' : 'CONFIRMAR PEDIDO'}
                   </button>
+                  {isOnlinePayment && (
+                    <p className="text-center text-gray-600 text-xs mt-2">Selecione "Pagar na entrega" para continuar</p>
+                  )}
                 </div>
               </form>
             </div>

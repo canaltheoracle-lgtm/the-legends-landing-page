@@ -25,6 +25,14 @@ export interface Product {
   created_at: string;
 }
 
+export interface OrderItemAddon {
+  id: number;
+  order_item_id: number;
+  addon_id: number;
+  addon_name: string;
+  addon_price: number;
+}
+
 export interface OrderItem {
   id: number;
   order_id: number;
@@ -32,6 +40,8 @@ export interface OrderItem {
   quantity: number;
   price: number;
   product_name: string;
+  observation?: string;
+  addons?: OrderItemAddon[];
 }
 
 export interface Order {
@@ -52,4 +62,44 @@ export interface Stats {
   pendingOrders: number;
   todayOrders: number;
   todayRevenue: number;
+}
+
+export interface DailyRevenue {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface TopProduct {
+  product_name: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface PaymentMethodStat {
+  method: string;
+  count: number;
+  total: number;
+}
+
+export interface StatusDistribution {
+  status: string;
+  count: number;
+}
+
+export interface HourlyDistribution {
+  hour: number;
+  count: number;
+}
+
+export interface AdvancedStats {
+  totalRevenue: number;
+  totalOrders: number;
+  averageTicket: number;
+  cancelledOrders: number;
+  dailyRevenue: DailyRevenue[];
+  topProducts: TopProduct[];
+  paymentMethods: PaymentMethodStat[];
+  statusDistribution: StatusDistribution[];
+  hourlyDistribution: HourlyDistribution[];
 }

@@ -12,6 +12,17 @@ const Orders: React.FC = () => {
 
   useEffect(() => {
     fetchOrders();
+    const interval = setInterval(async () => {
+      try {
+        let url = '/orders';
+        if (filterStatus) url += `?status=${filterStatus}`;
+        const data = await api.get(url, token);
+        setOrders(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }, 8000);
+    return () => clearInterval(interval);
   }, [token, filterStatus]);
 
   const fetchOrders = async () => {
@@ -127,7 +138,9 @@ const Orders: React.FC = () => {
                     <p className="text-gray-400 text-sm">{order.customer_address}</p>
                   )}
                   {order.payment_method && (
-                    <p className="text-gray-400 text-sm">Pagamento: {order.payment_method}</p>
+                    <p className="text-gray-400 text-sm">
+                      Pagamento: {order.payment_method === 'dinheiro' ? 'Dinheiro' : order.payment_method === 'pix' ? 'PIX' : order.payment_method === 'cartao' ? 'Cartão' : order.payment_method}
+                    </p>
                   )}
                   {order.notes && (
                     <p className="text-yellow-400 text-sm mt-2">Obs: {order.notes}</p>
@@ -136,11 +149,28 @@ const Orders: React.FC = () => {
 
                 <div className="border-t border-gray-700 pt-4">
                   <p className="text-gray-300 font-medium mb-3">Itens</p>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {order.items.map((item) => (
-                      <div key={item.id} className="flex justify-between text-gray-300">
-                        <span>{item.quantity}x {item.product_name}</span>
-                        <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                      <div key={item.id}>
+                        <div className="flex justify-between text-gray-300">
+                          <span>{item.quantity}x {item.product_name}</span>
+                          <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                        {item.addons && item.addons.length > 0 && (
+                          <div className="ml-4 mt-1 text-xs text-gray-500 space-y-0.5">
+                            {item.addons.map((addon) => (
+                              <div key={addon.id} className="flex justify-between">
+                                <span>+ {addon.addon_name}</span>
+                                <span>R$ {(addon.addon_price * item.quantity).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {item.observation && (
+                          <p className="ml-4 mt-1 text-xs text-yellow-400 italic">
+                            Obs: {item.observation}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
